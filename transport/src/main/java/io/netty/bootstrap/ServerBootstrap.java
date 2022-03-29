@@ -192,7 +192,8 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 System.out.println(Thread.currentThread() + ": user handler");
                 final ChannelPipeline pipeline = ch.pipeline();
 
-                // 添加配置的 ChannelHandler 到 pipeline 中。
+                // 添加配置的 ChannelHandler 到 pipeline 中
+                // 也就是.handle 传入的ChannelHandler
                 ChannelHandler handler = config.handler();
                 if (handler != null) {
                     pipeline.addLast(handler);

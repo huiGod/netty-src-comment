@@ -340,7 +340,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         Runnable scheduledTask  = pollScheduledTask(nanoTime);
         // 不断从定时任务队列中，获得
         while (scheduledTask != null) {
-            // 将定时任务添加到 taskQueue 中。若添加失败，则结束循环，返回 false ，表示未获取完所有课执行的定时任务
+            // 将定时任务添加到 taskQueue 中。若添加失败，则结束循环，返回 false ，表示未获取完所有可执行的定时任务
             if (!taskQueue.offer(scheduledTask)) {
                 // 将定时任务添加回 scheduledTaskQueue 中
                 // No space left in the task queue add it back to the scheduledTaskQueue so we pick it up again.

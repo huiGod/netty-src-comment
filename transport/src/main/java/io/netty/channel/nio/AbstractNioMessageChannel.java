@@ -62,6 +62,13 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
          */
         private final List<Object> readBuf = new ArrayList<Object>();
 
+        /**
+         * 获取当前Channel绑定的ChannelPipeline
+         * 读取数据到缓冲区
+         * 调用ChannelPipeline.fireChannelRead()，并将缓冲区的数据传入
+         * 数据全部传输完毕后，调用ChannelPipeline.fireChannelReadComplete()方法
+         * 如果在上面读取数据到缓冲区过程中捕获到异常，则调用ChannelPipeline.fireExceptionCaught()方法并将异常传入
+         */
         @SuppressWarnings("Duplicates")
         @Override
         public void read() {
@@ -78,7 +85,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             try {
                 try {
                     do {
-                        // 读取客户端的连接到 readBuf 中
+                        // 接收客户端的连接请求，返回客户端SocketChannel，最终封装为NioSocketChannel
                         int localRead = doReadMessages(readBuf);
                         // 无可读取的客户端的连接，结束
                         if (localRead == 0) {
@@ -97,6 +104,9 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                     // 记录异常
                     exception = t;
                 }
+
+                // 如果获取到了SocketChannel，则通过pipeline的fireChannelRead将NioSocketChannel传入
+                // 处理完readBuf后会清空
 
                 // 循环 readBuf 数组，触发 Channel read 事件到 pipeline 中。
                 int size = readBuf.size();

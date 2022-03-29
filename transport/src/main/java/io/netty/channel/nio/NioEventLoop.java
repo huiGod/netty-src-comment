@@ -590,8 +590,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     private void processSelectedKeys() {
         if (selectedKeys != null) {
+            //处理有过的selectedKeys
             processSelectedKeysOptimized();
         } else {
+            //正常处理
             processSelectedKeysPlain(selector.selectedKeys());
         }
     }
@@ -673,6 +675,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     private void processSelectedKeysOptimized() {
         // 遍历数组
         for (int i = 0; i < selectedKeys.size; ++i) {
+            //取出IO事件以及对应的channel
             final SelectionKey k = selectedKeys.keys[i];
             // null out entry in the array to allow to have it GC'ed once the Channel close
             // See https://github.com/netty/netty/issues/2363
@@ -857,14 +860,20 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             // 记录当前时间，单位：纳秒
             long currentTimeNanos = System.nanoTime();
             // 计算 select 截止时间，单位：纳秒。
+            //netty里面定时任务队列是按照延迟时间从小到大进行排序， delayNanos(currentTimeNanos)方法即取出第一个定时任务的延迟时间
             long selectDeadLineNanos = currentTimeNanos + delayNanos(currentTimeNanos);
 
             for (;;) {
+                //1.定时任务截至事时间快到了，中断本次轮询
                 // 计算本次 select 的超时时长，单位：毫秒。
                 // + 500000L 是为了四舍五入
                 // / 1000000L 是为了纳秒转为毫秒
                 long timeoutMillis = (selectDeadLineNanos - currentTimeNanos + 500000L) / 1000000L;
                 // 如果超时时长，则结束 select
+                // 我们可以看到，NioEventLoop中reactor线程的select操作也是一个for循环，在for循环第一步中，
+                // 如果发现当前的定时任务队列中有任务的截止事件快到了(<=0.5ms)，就跳出循环。
+                // 此外，跳出之前如果发现目前为止还没有进行过select操作（if (selectCnt == 0)），
+                // 那么就调用一次selectNow()，该方法会立即返回，不会阻塞
                 if (timeoutMillis <= 0) {
                     if (selectCnt == 0) { // 如果是首次 select ，selectNow 一次，非阻塞
                         selector.selectNow();
@@ -878,6 +887,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 // If we don't, the task might be pended until select operation was timed out.
                 // It might be pended until idle timeout if IdleStateHandler existed in pipeline.
                 // 若有新的任务加入
+                //2.轮询过程中发现有任务加入，中断本次轮询
+                //netty为了保证任务队列能够及时执行，在进行阻塞select操作的时候会判断任务队列是否为空，如果不为空，就执行一次非阻塞select操作，跳出循环
                 if (hasTasks() && wakenUp.compareAndSet(false, true)) {
                     // selectNow 一次，非阻塞
                     selector.selectNow();
@@ -886,7 +897,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     break;
                 }
 
+                //3.阻塞式select操作
+                //执行到这一步，说明netty任务队列里面队列为空，并且所有定时任务延迟时间还未到(大于0.5ms)，于是，在这里进行一次阻塞select操作，截止到第一个定时任务的截止时间
                 // 阻塞 select ，查询 Channel 是否有就绪的 IO 事件
+                //这里，我们可以问自己一个问题，如果第一个定时任务的延迟非常长，比如一个小时，那么有没有可能线程一直阻塞在select操作，当然有可能！But，只要在这段时间内，有新任务加入，该阻塞就会被释放
                 int selectedKeys = selector.select(timeoutMillis);
                 // select 计数器 ++
                 selectCnt ++;
@@ -915,6 +929,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     break;
                 }
 
+                // netty 会在每次进行 selector.select(timeoutMillis) 之前记录一下开始时间currentTimeNanos，在select之后记录一下结束时间，
+                // 判断select操作是否至少持续了timeoutMillis秒（这里将time - TimeUnit.MILLISECONDS.toNanos(timeoutMillis) >= currentTimeNanos
+                // 改成time - currentTimeNanos >= TimeUnit.MILLISECONDS.toNanos(timeoutMillis)或许更好理解一些）,
+                // 如果持续的时间大于等于timeoutMillis，说明就是一次有效的轮询，重置selectCnt标志，否则，表明该阻塞方法并没有阻塞这么长时间，
+                // 可能触发了jdk的空轮询bug，当空轮询的次数超过一个阀值的时候，默认是512，就开始重建selector
                 // 记录当前时间
                 long time = System.nanoTime();
                 // 符合 select 超时条件，重置 selectCnt 为 1

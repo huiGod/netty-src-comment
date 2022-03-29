@@ -29,6 +29,8 @@ import io.netty.channel.ChannelPromise;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+
+
 /**
  * Triggers an {@link IdleStateEvent} when a {@link Channel} has not performed
  * read, write, or both operation for a while.
@@ -386,9 +388,9 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         // Avoid the case where destroy() is called before scheduling timeouts.
         // See: https://github.com/netty/netty/issues/143
         switch (state) {
-        case 1:
-        case 2:
-            return;
+            case 1:
+            case 2:
+                return;
         }
 
         // 标记为已初始化
@@ -396,7 +398,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         // 初始化 ChannelOutboundBuffer 相关属性
         initOutputChanged(ctx);
 
-        // 初始相应的定时任务
+        // 记录当前时间作为初始值，并初始相应的定时任务
         lastReadTime = lastWriteTime = ticksInNanos();
         if (readerIdleTimeNanos > 0) {
             readerIdleTimeout = schedule(ctx, new ReaderIdleTimeoutTask(ctx), readerIdleTimeNanos, TimeUnit.NANOSECONDS);
@@ -473,6 +475,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         if (observeOutput) {
             Channel channel = ctx.channel();
             Unsafe unsafe = channel.unsafe();
+            //返回正在准备写的请求
             ChannelOutboundBuffer buf = unsafe.outboundBuffer();
 
             if (buf != null) {
@@ -595,7 +598,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
                     // 触发 Exception Caught 到下一个节点
                     ctx.fireExceptionCaught(t);
                 }
-            // 如果大于 0 ，说明未检测到读空闲
+                // 如果大于 0 ，说明未检测到读空闲
             } else {
                 // 延迟时间为 nextDelay ，即按照最后一次读的时间作为开始计数
                 // Read occurred before the timeout - set a new timeout with shorter delay.
@@ -641,7 +644,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
                     // 触发 Exception Caught 到下一个节点
                     ctx.fireExceptionCaught(t);
                 }
-            // 如果大于 0 ，说明未检测到读空闲
+                // 如果大于 0 ，说明未检测到读空闲
             } else {
                 // Write occurred before the timeout - set a new timeout with shorter delay.
                 writerIdleTimeout = schedule(ctx, this, nextDelay, TimeUnit.NANOSECONDS);
@@ -688,7 +691,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
                 } catch (Throwable t) {
                     ctx.fireExceptionCaught(t);
                 }
-            // 如果大于 0 ，说明未检测到 all 空闲
+                // 如果大于 0 ，说明未检测到 all 空闲
             } else {
                 // Either read or write occurred before the timeout - set a new
                 // timeout with shorter delay.

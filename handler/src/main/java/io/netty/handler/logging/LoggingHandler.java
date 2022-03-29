@@ -15,6 +15,9 @@
  */
 package io.netty.handler.logging;
 
+import static io.netty.buffer.ByteBufUtil.appendPrettyHexDump;
+import static io.netty.util.internal.StringUtil.NEWLINE;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufHolder;
 import io.netty.channel.ChannelDuplexHandler;
@@ -26,11 +29,7 @@ import io.netty.channel.ChannelPromise;
 import io.netty.util.internal.logging.InternalLogLevel;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
-
 import java.net.SocketAddress;
-
-import static io.netty.buffer.ByteBufUtil.appendPrettyHexDump;
-import static io.netty.util.internal.StringUtil.NEWLINE;
 
 /**
  * A {@link ChannelHandler} that logs all events using a logging framework.
@@ -155,7 +154,7 @@ public class LoggingHandler extends ChannelDuplexHandler {
         if (logger.isEnabled(internalLevel)) {
             logger.log(internalLevel, format(ctx, "REGISTERED"));
         }
-        //
+        //传递给下一个ChannelHandlerContext
         ctx.fireChannelRegistered();
     }
 

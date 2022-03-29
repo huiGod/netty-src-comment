@@ -35,10 +35,20 @@ final class DefaultChannelHandlerContext extends AbstractChannelHandlerContext {
         return handler;
     }
 
+    /**
+     * 当一个handler 实现了ChannelInboundHandler 接口，则isInbound 返回true
+     * @param handler
+     * @return
+     */
     private static boolean isInbound(ChannelHandler handler) {
         return handler instanceof ChannelInboundHandler;
     }
 
+    /**
+     * 当一个handler 实现了ChannelOutboundHandler 接口，则isOutbound 就返回true
+     * @param handler
+     * @return
+     */
     private static boolean isOutbound(ChannelHandler handler) {
         return handler instanceof ChannelOutboundHandler;
     }

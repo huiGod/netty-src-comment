@@ -50,7 +50,7 @@ import java.util.Map;
 public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C extends Channel> implements Cloneable {
 
     /**
-     * EventLoopGroup 对象
+     * EventLoopGroup 对象，这里是 BossGroup
      */
     volatile EventLoopGroup group;
     /**
@@ -308,8 +308,12 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return regFuture;
         }
 
+        //上述 Channel 的注册可能是异步的
+        //这里分异步处理完成的处理逻辑和未完成添加监听器的处理逻辑
+        //最终都是调用 doBind0进行绑定
+
         // 绑定 Channel 的端口，并注册 Channel 到 SelectionKey 中。
-        if (regFuture.isDone()) { // 未
+        if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
             doBind0(regFuture, channel, localAddress, promise); // 绑定
