@@ -15,6 +15,11 @@
  */
 package io.netty.buffer;
 
+import static io.netty.util.internal.MathUtil.isOutOfBounds;
+import static io.netty.util.internal.ObjectUtil.checkNotNull;
+import static io.netty.util.internal.StringUtil.NEWLINE;
+import static io.netty.util.internal.StringUtil.isSurrogate;
+
 import io.netty.util.AsciiString;
 import io.netty.util.ByteProcessor;
 import io.netty.util.CharsetUtil;
@@ -26,7 +31,6 @@ import io.netty.util.internal.StringUtil;
 import io.netty.util.internal.SystemPropertyUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -40,11 +44,6 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
 import java.util.Locale;
-
-import static io.netty.util.internal.MathUtil.isOutOfBounds;
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
-import static io.netty.util.internal.StringUtil.NEWLINE;
-import static io.netty.util.internal.StringUtil.isSurrogate;
 
 /**
  * A collection of utility methods that is related with handling {@link ByteBuf},
@@ -71,6 +70,7 @@ public final class ByteBufUtil {
 
     static {
         // 读取 ByteBufAllocator 配置
+        // 默认就是 polled
         String allocType = SystemPropertyUtil.get("io.netty.allocator.type", PlatformDependent.isAndroid() ? "unpooled" : "pooled");
         allocType = allocType.toLowerCase(Locale.US).trim();
 
@@ -80,6 +80,7 @@ public final class ByteBufUtil {
             alloc = UnpooledByteBufAllocator.DEFAULT;
             logger.debug("-Dio.netty.allocator.type: {}", allocType);
         } else if ("pooled".equals(allocType)) {
+            //默认创建的是池化缓冲区
             alloc = PooledByteBufAllocator.DEFAULT;
             logger.debug("-Dio.netty.allocator.type: {}", allocType);
         } else {

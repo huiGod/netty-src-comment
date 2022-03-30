@@ -981,9 +981,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             int size;
             try {
-                // 过滤写入的消息( 数据 )
+                // 将待写入的对象过滤，把非ByteBuf对象和FileRegion过滤，把所有的非直接内存转换成直接内存DirectBuffer
                 msg = filterOutboundMessage(msg);
-                // 计算消息的长度
+                // 获取缓冲区大小
                 size = pipeline.estimatorHandle().size(msg);
                 if (size < 0) {
                     size = 0;

@@ -15,6 +15,8 @@
  */
 package io.netty.channel;
 
+import static java.lang.Math.min;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufHolder;
 import io.netty.buffer.Unpooled;
@@ -28,14 +30,11 @@ import io.netty.util.internal.PromiseNotificationUtil;
 import io.netty.util.internal.SystemPropertyUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
-
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
-
-import static java.lang.Math.min;
 
 /**
  * (Transport implementors only) an internal data structure used by {@link AbstractChannel} to store its pending
@@ -200,7 +199,7 @@ public final class ChannelOutboundBuffer {
             do {
                 // 增加 flushed
                 flushed ++;
-                // 设置 Promise 不可取消
+                // 如果取消的话需要回收内存
                 if (!entry.promise.setUncancellable()) { // 设置失败
                     // 减少 totalPending 计数
                     // Was cancelled so make sure we free up memory and notify about the freed bytes

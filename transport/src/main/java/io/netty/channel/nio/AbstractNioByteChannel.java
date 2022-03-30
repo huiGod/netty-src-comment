@@ -15,6 +15,8 @@
  */
 package io.netty.channel.nio;
 
+import static io.netty.channel.internal.ChannelUtils.WRITE_STATUS_SNDBUF_FULL;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
@@ -30,12 +32,9 @@ import io.netty.channel.socket.ChannelInputShutdownEvent;
 import io.netty.channel.socket.ChannelInputShutdownReadComplete;
 import io.netty.channel.socket.SocketChannelConfig;
 import io.netty.util.internal.StringUtil;
-
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-
-import static io.netty.channel.internal.ChannelUtils.WRITE_STATUS_SNDBUF_FULL;
 
 /**
  * {@link AbstractNioChannel} base class for {@link Channel}s that operate on bytes.
@@ -158,8 +157,9 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 return;
             }
             final ChannelPipeline pipeline = pipeline();
+            // 用来处理内存的分配:池化或者非池化 UnpooledByteBufAllocator
             final ByteBufAllocator allocator = config.getAllocator();
-            // 获得 RecvByteBufAllocator.Handle 对象
+            // 用来计算此次读循环应该分配多少内存 AdaptiveRecvByteBufAllocator 自适应计算缓冲分配
             final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();
             // 重置 RecvByteBufAllocator.Handle 对象
             allocHandle.reset(config);
@@ -169,11 +169,11 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             try {
                 do {
                     // 申请 ByteBuf 对象
+                    // 默认申请的是缓冲的直接内存，并且初始大小为1024
                     byteBuf = allocHandle.allocate(allocator);
-                    // 读取数据
-                    // 设置最后读取字节数
+                    // 读取数据到 byteBuf，读取多少字节数据，然后设置最后读取字节数字段
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
-                    // <1> 未读取到数据
+                    // 如果上一次读到的字节数小于等于0，清理引用和跳出循环
                     if (allocHandle.lastBytesRead() <= 0) {
                         // 释放 ByteBuf 对象
                         // nothing was read. release the buffer.
@@ -191,24 +191,24 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                         break;
                     }
 
-                    // <2> 读取到数据
+                    // 读取到数据
 
                     // 读取消息数量 + localRead
                     allocHandle.incMessagesRead(1);
                     // TODO 芋艿 readPending
                     readPending = false;
-                    // 触发 Channel read 事件到 pipeline 中。 TODO
+                    // 触发 ChannelRead事件到 pipeline 中
                     pipeline.fireChannelRead(byteBuf);
                     // 置空 ByteBuf 对象
                     byteBuf = null;
                 } while (allocHandle.continueReading()); // 循环判断是否继续读取
 
-                // 读取完成
+                // 读取完成，调整下一次读取需要分配的缓冲区大小
                 allocHandle.readComplete();
-                // 触发 Channel readComplete 事件到 pipeline 中。
+                // 触发 Channel readComplete 事件到 pipeline 中
                 pipeline.fireChannelReadComplete();
 
-                // TODO 芋艿 细节
+                // 如果需要关闭，则执行关闭操作
                 if (close) {
                     closeOnRead(pipeline);
                 }

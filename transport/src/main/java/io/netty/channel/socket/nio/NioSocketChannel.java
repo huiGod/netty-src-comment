@@ -15,6 +15,8 @@
  */
 package io.netty.channel.socket.nio;
 
+import static io.netty.channel.internal.ChannelUtils.MAX_BYTES_PER_GATHERING_WRITE_ATTEMPTED_LOW_THRESHOLD;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelException;
@@ -35,7 +37,6 @@ import io.netty.util.internal.SocketUtils;
 import io.netty.util.internal.UnstableApi;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -45,8 +46,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.concurrent.Executor;
-
-import static io.netty.channel.internal.ChannelUtils.MAX_BYTES_PER_GATHERING_WRITE_ATTEMPTED_LOW_THRESHOLD;
 
 /**
  * {@link io.netty.channel.socket.SocketChannel} which uses NIO selector based implementation.
@@ -358,7 +357,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
         // 设置最大可读取字节数量。因为 ByteBuf 目前最大写入的大小为 byteBuf.writableBytes()
         allocHandle.attemptedBytesRead(byteBuf.writableBytes());
-        // 读取数据到 ByteBuf 中
+        // 读取数据到 ByteBuf 中，并返回一个读取到的字节数
         return byteBuf.writeBytes(javaChannel(), allocHandle.attemptedBytesRead());
     }
 
