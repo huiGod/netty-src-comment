@@ -112,7 +112,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * 相比 MERGE_CUMULATOR 来说：
      *
      * 好处是，内存零拷贝
-     * 坏处是，因为维护复杂索引，所以某些使用场景下，慢于 MERGE_CUMULATOR
+     * 坏处是，因为维护复杂，所以某些使用场景下，慢于 MERGE_CUMULATOR
      */
     public static final Cumulator COMPOSITE_CUMULATOR = new Cumulator() {
 
@@ -362,6 +362,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 decodeWasNull = !out.insertSinceRecycled();
 
                 // 触发 Channel Read 事件。可能是多条消息
+                // 如果一条完整的数据也没有，则不行进行任何处理
                 fireChannelRead(ctx, out, size);
 
                 // 回收 CodecOutputList 对象
@@ -531,7 +532,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     outSize = 0;
                 }
 
-                // 记录当前可读字节数
+                // 记录一下字节容器中有多少字节待拆
                 int oldInputLength = in.readableBytes();
 
                 // 执行解码。如果 Handler 准备移除，在解码完成后，进行移除。
@@ -548,11 +549,11 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
 
                 // 整列判断 `out.size() == 0` 比较合适。因为，如果 `outSize > 0` 那段，已经清理了 out 。
                 if (outSize == out.size()) {
-                    // 如果未读取任何字节，结束循环
+                    // 拆包器未读取任何数据
                     if (oldInputLength == in.readableBytes()) {
                         break;
-                    // 如果可读字节发生变化，继续读取
                     } else {
+                        //拆包器已读取部分数据，还需要继续
                         continue;
                     }
                 }

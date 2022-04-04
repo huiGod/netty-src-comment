@@ -123,11 +123,12 @@ public class LineBasedFrameDecoder extends ByteToMessageDecoder {
         final int eol = findEndOfLine(buffer);
         if (!discarding) { // 未处于废弃模式
             if (eol >= 0) { // 找到
+                //计算分隔符和包长度
                 final ByteBuf frame;
                 final int length = eol - buffer.readerIndex(); // 读取长度
                 final int delimLength = buffer.getByte(eol) == '\r' ? 2 : 1; // 分隔符的长度。2 为 `\r\n` ，1 为 `\n`
 
-                // 超过最大长度
+                // 丢弃异常数据
                 if (length > maxLength) {
                     // 设置新的读取位置
                     buffer.readerIndex(eol + delimLength);
@@ -137,7 +138,7 @@ public class LineBasedFrameDecoder extends ByteToMessageDecoder {
                     return null;
                 }
 
-                // 解码出一条消息。
+                // 取包的时候是否包括分隔符
                 if (stripDelimiter) {
                     frame = buffer.readRetainedSlice(length);
                     buffer.skipBytes(delimLength); // 忽略换行符

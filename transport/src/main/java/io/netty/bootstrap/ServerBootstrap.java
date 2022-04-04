@@ -272,7 +272,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         @Override
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            // 老艿艿：如下的注释，先暂时认为是接受的客户端的 NioSocketChannel
+            // 如下的注释，先暂时认为是接受的客户端的 NioSocketChannel
 
             // 接受的客户端的 NioSocketChannel 对象
             final Channel child = (Channel) msg;

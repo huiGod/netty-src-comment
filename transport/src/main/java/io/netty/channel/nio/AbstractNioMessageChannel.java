@@ -99,7 +99,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
 
                         // 读取消息数量 + localRead
                         allocHandle.incMessagesRead(localRead);
-                    } while (allocHandle.continueReading()); // 循环判断是否继续读取
+                    } while (allocHandle.continueReading()); // 循环判断是否继续读取，这里始终会返回 false，只会每次接收一个连接
                 } catch (Throwable t) {
                     // 记录异常
                     exception = t;
